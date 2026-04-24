@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from '../store/useAuthStore';
 import './PostListing.css';
 
 const PostListing = () => {
   const navigate = useNavigate();
+  const { profile } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
@@ -16,8 +18,12 @@ const PostListing = () => {
     description: '',
   });
 
-  // Dummy user ID defined in migration script
-  const DUMMY_SELLER_ID = '00000000-0000-0000-0000-000000000001';
+  useEffect(() => {
+    if (!profile || profile.role !== 'seller') {
+      alert('You must be logged in as a Seller to post a listing.');
+      navigate('/login');
+    }
+  }, [profile, navigate]);
 
   useEffect(() => {
     // Fetch categories on load
@@ -90,7 +96,7 @@ const PostListing = () => {
 
     const { data, error } = await supabase.from('equipment_listings').insert([
       {
-        seller_id: null, // Using null to bypass Foreign Key error until Auth is ready
+        seller_id: profile.id,
         title: formData.title,
         category_id: formData.category_id || null,
         condition: formData.condition,

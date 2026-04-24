@@ -131,6 +131,20 @@ CREATE POLICY "Sellers can update own listings"
 ON equipment_listings FOR UPDATE 
 USING (auth.uid() = seller_id);
 
+-- Example RLS: Sellers can insert their own listings
+CREATE POLICY "Sellers can insert own listings" 
+ON equipment_listings FOR INSERT 
+WITH CHECK (auth.uid() = seller_id);
+
+-- Categories RLS: Allow anyone to view categories
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Categories are viewable by everyone" 
+ON categories FOR SELECT USING (true);
+
+-- Categories RLS: Allow users to insert categories (Hackathon bypass)
+CREATE POLICY "Anyone can insert categories" 
+ON categories FOR INSERT WITH CHECK (true);
+
 -- Profile RLS: Allow users to insert their profile during registration
 CREATE POLICY "Users can insert their own profile" 
 ON profiles FOR INSERT 

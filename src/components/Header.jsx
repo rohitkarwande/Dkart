@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Search, MessageSquare, Briefcase, User, PlusCircle } from 'lucide-react';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,38 +19,43 @@ const Header = () => {
       <div className="header-container">
         <div className="logo-section">
           <Link to="/" className="logo">
-            <span className="logo-icon">➕</span>
+            <div className="logo-badge">
+              <PlusCircle size={24} color="#059669" />
+            </div>
             <span className="logo-text">MediMart</span>
           </Link>
         </div>
         
         <div className="search-section">
           <div className="search-bar">
-            <input 
-              type="text" 
-              placeholder="Search for medical equipment, supplies, or services..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
+            <div className="search-input-wrapper">
+              <Search size={18} className="search-icon-inner" />
+              <input 
+                type="text" 
+                placeholder="Search for medical equipment..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
             <button className="search-button" onClick={handleSearch}>Search</button>
           </div>
         </div>
 
         <div className="actions-section">
           <Link to="/messages" className="action-link">
-            <span className="action-icon">💬</span>
+            <MessageSquare size={20} />
             <span>Messages</span>
           </Link>
           <Link to="/deals" className="action-link">
-            <span className="action-icon">🤝</span>
+            <Briefcase size={20} />
             <span>Deals</span>
           </Link>
-          <Link to="/login" className="action-link">
-            <span className="action-icon">👤</span>
+          <Link to="/login" className="action-link sign-in">
+            <User size={20} />
             <span>Sign In</span>
           </Link>
-          <Link to="/post-listing" className="action-button primary">
+          <Link to="/post-listing" className="header-post-btn">
             Post Equipment
           </Link>
         </div>

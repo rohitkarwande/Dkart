@@ -1,25 +1,20 @@
 .explore-feed-container {
-  margin-top: 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem 4rem;
 }
 
 .explore-section {
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
 }
 
 .explore-section h2 {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  font-weight: 800;
   color: var(--text-main);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 12px;
+  letter-spacing: -0.5px;
 }
-
-.trending-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-/* We reuse the listing-card styles from SearchDiscover by ensuring class names match, 
-   but we can also define them here if ExploreFeed is used standalone. */
