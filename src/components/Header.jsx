@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MessageSquare, Briefcase, User, PlusCircle } from 'lucide-react';
+import { Search, MessageSquare, Briefcase, User, PlusCircle, LayoutDashboard, LogOut } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
+import { supabase } from '../lib/supabase';
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { user, profile, logout } = useAuthStore();
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -12,6 +15,12 @@ const Header = () => {
     } else {
       navigate('/search');
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -43,21 +52,43 @@ const Header = () => {
         </div>
 
         <div className="actions-section">
-          <Link to="/messages" className="action-link">
-            <MessageSquare size={20} />
-            <span>Messages</span>
-          </Link>
-          <Link to="/deals" className="action-link">
-            <Briefcase size={20} />
-            <span>Deals</span>
-          </Link>
-          <Link to="/login" className="action-link sign-in">
-            <User size={20} />
-            <span>Sign In</span>
-          </Link>
-          <Link to="/post-listing" className="header-post-btn">
-            Post Equipment
-          </Link>
+          {user && (
+            <>
+              <Link to="/messages" className="action-link">
+                <MessageSquare size={20} />
+                <span>Messages</span>
+              </Link>
+              <Link to="/deals" className="action-link">
+                <Briefcase size={20} />
+                <span>Deals</span>
+              </Link>
+              
+              {(profile?.role === 'seller' || profile?.role === 'admin') && (
+                <Link to="/dashboard" className="action-link">
+                  <LayoutDashboard size={20} />
+                  <span>Dashboard</span>
+                </Link>
+              )}
+            </>
+          )}
+
+          {user ? (
+            <button onClick={handleLogout} className="action-link logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <Link to="/login" className="action-link sign-in">
+              <User size={20} />
+              <span>Sign In</span>
+            </Link>
+          )}
+
+          {(!user || profile?.role === 'seller' || profile?.role === 'admin') && (
+            <Link to="/post-listing" className="header-post-btn">
+              Post Equipment
+            </Link>
+          )}
         </div>
       </div>
     </header>

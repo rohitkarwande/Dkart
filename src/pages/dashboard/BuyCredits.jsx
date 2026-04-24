@@ -1,14 +1,29 @@
 import { useAuthStore } from '../../store/useAuthStore';
 import { CreditCard, Zap, CheckCircle } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 const BuyCredits = () => {
   const { profile, addCredits } = useAuthStore();
   const currentCredits = profile?.credits_balance || 0;
 
-  const handlePurchase = (amount) => {
-    // Hackathon dummy logic
-    addCredits(amount);
-    alert(`Successfully added ${amount} credits to your account!`);
+  const handlePurchase = async (amount) => {
+    if (!profile) return;
+    
+    const newBalance = (profile.credits_balance || 0) + amount;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits_balance: newBalance })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+      
+      addCredits(amount); // Update local store
+      alert(`Successfully added ${amount} credits to your account!`);
+    } catch (err) {
+      alert("Error processing purchase: " + err.message);
+    }
   };
 
   return (

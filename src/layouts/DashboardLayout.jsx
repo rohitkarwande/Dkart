@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
-import { LogOut, User, FileText, Settings, ShieldAlert, Zap, BarChart2, UploadCloud, Package, ShoppingBag } from 'lucide-react';
+import { LogOut, User, FileText, Settings, ShieldAlert, Zap, BarChart2, UploadCloud, Package, ShoppingBag, MessageSquare, Briefcase } from 'lucide-react';
 
 const DashboardLayout = () => {
   const { profile, logout } = useAuthStore();
@@ -21,10 +21,20 @@ const DashboardLayout = () => {
     <div className="dashboard-layout">
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
-          <h2>MediMart Panel</h2>
-          <div className="badge-container">
-            <span className="role-badge">{profile?.role || 'User'}</span>
-            {isPro && <span className="pro-badge">PRO</span>}
+          <div className="logo-icon">D</div>
+          <div>
+            <h2>Dkart Admin</h2>
+            <p className="subtitle">B2B Marketplace Control</p>
+          </div>
+        </div>
+        
+        <div className="user-context-card">
+          <div className="user-avatar-small">
+            {profile?.full_name ? profile.full_name[0] : 'U'}
+          </div>
+          <div className="user-info-sidebar">
+            <span className="user-name">{profile?.full_name || 'Admin User'}</span>
+            <span className="user-role-badge">{profile?.role}</span>
           </div>
         </div>
 
@@ -34,11 +44,21 @@ const DashboardLayout = () => {
             Profile
           </Link>
 
-          <Link to="/search" className="nav-item" style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>
+          <Link to="/search" className="nav-item">
             <ShoppingBag size={20} />
             Browse Marketplace
           </Link>
-          
+
+          <Link to="/messages" className="nav-item">
+            <MessageSquare size={20} />
+            Messages
+          </Link>
+
+          <Link to="/deals" className="nav-item">
+            <Briefcase size={20} />
+            Deal Pipeline
+          </Link>
+
           {isSeller && (
             <>
               <Link to="/dashboard/my-listings" className="nav-item">
@@ -51,13 +71,13 @@ const DashboardLayout = () => {
                 KYC Verification
                 {!profile?.is_verified && <span className="status-dot red"></span>}
               </Link>
-              
+
               <Link to="/dashboard/analytics" className="nav-item">
                 <BarChart2 size={20} />
-                Vendor Analytics
+                Analytics
                 {!isPro && <span className="pro-tag">PRO</span>}
               </Link>
-              
+
               <Link to="/dashboard/bulk-upload" className="nav-item">
                 <UploadCloud size={20} />
                 Bulk Import
@@ -66,25 +86,15 @@ const DashboardLayout = () => {
           )}
 
           {isAdmin && (
-            <Link to="/dashboard/admin" className="nav-item" style={{ borderLeft: '4px solid #10b981', background: '#ecfdf5' }}>
+            <Link to="/dashboard/admin" className="nav-item" style={{ borderLeft: '3px solid var(--primary-color)', background: 'var(--primary-soft)' }}>
               <ShieldAlert size={20} />
-              Admin Overview
+              Admin Panel
             </Link>
           )}
 
           <Link to="/dashboard/credits" className="nav-item">
             <Zap size={20} />
             Buy Credits
-          </Link>
-
-          <Link to="/coming-soon" className="nav-item">
-            <FileText size={20} />
-            My Inquiries
-          </Link>
-
-          <Link to="/coming-soon" className="nav-item">
-            <Settings size={20} />
-            Settings
           </Link>
         </nav>
 

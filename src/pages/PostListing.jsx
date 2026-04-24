@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
 import './PostListing.css';
 
 const PostListing = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('id');
   const { profile } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(!!editId);
   const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
@@ -20,10 +23,38 @@ const PostListing = () => {
 
   useEffect(() => {
     if (!profile || profile.role !== 'seller') {
-      alert('You must be logged in as a Seller to post a listing.');
+      alert('You must be logged in as a Seller to post or edit a listing.');
       navigate('/login');
     }
   }, [profile, navigate]);
+
+  useEffect(() => {
+    if (!editId) return;
+
+    const fetchListingToEdit = async () => {
+      setFetching(true);
+      const { data, error } = await supabase
+        .from('equipment_listings')
+        .select('*')
+        .eq('id', editId)
+        .single();
+
+      if (!error && data) {
+        setFormData({
+          title: data.title,
+          category_id: data.category_id,
+          condition: data.condition,
+          price: data.price,
+          location: data.location,
+          description: data.description,
+          imageUrl: data.images && data.images[0] ? data.images[0] : ''
+        });
+      }
+      setFetching(false);
+    };
+
+    fetchListingToEdit();
+  }, [editId]);
 
   useEffect(() => {
     // Fetch categories on load
@@ -94,38 +125,53 @@ const PostListing = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data, error } = await supabase.from('equipment_listings').insert([
-      {
-        seller_id: profile.id,
-        title: formData.title,
-        category_id: formData.category_id || null,
-        condition: formData.condition,
-        price: formData.price ? parseFloat(formData.price) : null,
-        location: formData.location,
-        description: formData.description,
-        status: 'active',
-        images: formData.imageUrl ? [formData.imageUrl] : [],
-      },
-    ]);
+    const listingData = {
+      seller_id: profile.id,
+      title: formData.title,
+      category_id: formData.category_id || null,
+      condition: formData.condition,
+      price: formData.price ? parseFloat(formData.price) : null,
+      location: formData.location,
+      description: formData.description,
+      status: 'active',
+      images: formData.imageUrl ? [formData.imageUrl] : [],
+    };
+
+    let result;
+    if (editId) {
+      result = await supabase
+        .from('equipment_listings')
+        .update(listingData)
+        .eq('id', editId);
+    } else {
+      result = await supabase
+        .from('equipment_listings')
+        .insert([listingData]);
+    }
+
+    const { error } = result;
 
     setLoading(false);
 
     if (error) {
-      alert('Error posting listing: ' + error.message);
+      alert('Error saving listing: ' + error.message);
     } else {
-      alert('Listing posted successfully!');
-      navigate('/');
+      alert(editId ? 'Listing updated successfully!' : 'Listing posted successfully!');
+      navigate('/dashboard/my-listings');
     }
   };
 
   return (
     <div className="post-listing-container">
       <div className="post-listing-header">
-        <h1>Post Equipment for Sale</h1>
-        <p>List your medical equipment to thousands of verified buyers.</p>
+        <h1>{editId ? 'Edit Your Equipment' : 'Post Equipment for Sale'}</h1>
+        <p>{editId ? 'Update your listing details to attract more buyers.' : 'List your medical equipment to thousands of verified buyers.'}</p>
       </div>
 
-      <form className="post-form" onSubmit={handleSubmit}>
+      {fetching ? (
+        <div style={{ textAlign: 'center', padding: '3rem' }}>Loading listing data...</div>
+      ) : (
+        <form className="post-form" onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="title">Listing Title *</label>
           <input
@@ -281,9 +327,10 @@ const PostListing = () => {
         </div>
 
         <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? 'Posting...' : 'Post Listing'}
+          {loading ? 'Saving...' : (editId ? 'Update Listing' : 'Post Listing')}
         </button>
       </form>
+      )}
     </div>
   );
 };

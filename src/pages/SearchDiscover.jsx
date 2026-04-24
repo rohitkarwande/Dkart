@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
-import { MapPin, Box, ShieldCheck, Star } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { Search, MapPin, Box, Filter, SlidersHorizontal, ShieldCheck, Star } from 'lucide-react';
 import './SearchDiscover.css';
 
 const SearchDiscover = () => {
@@ -9,7 +9,6 @@ const SearchDiscover = () => {
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -82,71 +81,98 @@ const SearchDiscover = () => {
     <div className="search-page-container">
       {/* Sidebar Filters */}
       <aside className="filters-sidebar">
-        <h2>Filters</h2>
+        <div className="sidebar-header">
+          <SlidersHorizontal size={20} />
+          <h2>Filters</h2>
+        </div>
         
         <div className="filter-group">
           <h3>Category</h3>
-          <select 
-            value={filters.category} 
-            onChange={handleCategoryChange}
-            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)' }}
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+          <div className="custom-select">
+            <select value={filters.category} onChange={handleCategoryChange}>
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="filter-group">
           <h3>Condition</h3>
-          <label>
-            <input 
-              type="checkbox" 
-              value="new" 
-              checked={filters.condition.includes('new')}
-              onChange={handleConditionChange} 
-            />
-            New
-          </label>
-          <label>
-            <input 
-              type="checkbox" 
-              value="used" 
-              checked={filters.condition.includes('used')}
-              onChange={handleConditionChange} 
-            />
-            Used
-          </label>
-          <label>
-            <input 
-              type="checkbox" 
-              value="refurbished" 
-              checked={filters.condition.includes('refurbished')}
-              onChange={handleConditionChange} 
-            />
-            Refurbished
-          </label>
+          <div className="checkbox-group">
+            <label className="checkbox-item">
+              <input 
+                type="checkbox" 
+                value="new" 
+                checked={filters.condition.includes('new')}
+                onChange={handleConditionChange} 
+              />
+              <span className="checkmark"></span>
+              New
+            </label>
+            <label className="checkbox-item">
+              <input 
+                type="checkbox" 
+                value="used" 
+                checked={filters.condition.includes('used')}
+                onChange={handleConditionChange} 
+              />
+              <span className="checkmark"></span>
+              Used
+            </label>
+            <label className="checkbox-item">
+              <input 
+                type="checkbox" 
+                value="refurbished" 
+                checked={filters.condition.includes('refurbished')}
+                onChange={handleConditionChange} 
+              />
+              <span className="checkmark"></span>
+              Refurbished
+            </label>
+          </div>
         </div>
       </aside>
 
       {/* Main Search Results */}
       <main className="search-results-area">
-        <div className="search-header">
-          <h1>
-            {filters.query ? `Results for "${filters.query}"` : 'All Medical Equipment'}
-          </h1>
-          <span style={{ color: 'var(--text-muted)' }}>
-            {listings.length} {listings.length === 1 ? 'result' : 'results'}
-          </span>
+        <div className="search-results-header">
+          <div className="header-text">
+            <h1>
+              {filters.query ? `Results for "${filters.query}"` : 'All Medical Equipment'}
+            </h1>
+            <span className="result-count">
+              {listings.length} {listings.length === 1 ? 'equipment' : 'pieces of equipment'} found
+            </span>
+          </div>
+          
+          <div className="search-sort">
+            <span>Sort by:</span>
+            <select>
+              <option>Newest First</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
-          <div className="loading-spinner">Loading listings...</div>
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Searching for equipment...</p>
+          </div>
         ) : listings.length === 0 ? (
-          <div className="loading-spinner">No equipment found matching your criteria.</div>
+          <div className="empty-state">
+            <Search size={48} />
+            <h3>No matching equipment</h3>
+            <p>Try adjusting your filters or search query to find what you're looking for.</p>
+            <button onClick={() => setFilters({ query: '', category: '', condition: [] })} className="reset-btn">
+              Reset All Filters
+            </button>
+          </div>
         ) : (
           <div className="results-grid">
             {listings.map((listing) => (
@@ -169,7 +195,7 @@ const SearchDiscover = () => {
                   <div className="card-top">
                     <span className="category-tag">{listing.categories?.name || 'Medical'}</span>
                     <div className="rating-mini">
-                      <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                      <Star size={14} fill="currentColor" />
                       <span>4.8</span>
                     </div>
                   </div>
@@ -177,20 +203,20 @@ const SearchDiscover = () => {
                   <h3>{listing.title}</h3>
                   
                   <div className="card-price-row">
-                    <span className="price-label">Asking Price</span>
-                    <div className="price-value">
-                      {listing.price ? `₹${Number(listing.price).toLocaleString('en-IN')}` : 'Contact for Price'}
-                    </div>
+                    <span className="price-label">Quoted Price</span>
+                    <span className="price-value">
+                      {listing.price ? `₹${Number(listing.price).toLocaleString('en-IN')}` : 'Request Quote'}
+                    </span>
                   </div>
 
                   <div className="card-meta-info">
                     <div className="meta-item">
                       <MapPin size={14} />
-                      <span>{listing.location || 'All India'}</span>
+                      <span>{listing.location || 'India'}</span>
                     </div>
                     <div className="meta-item">
                       <Box size={14} />
-                      <span>Min. Order: 1 Unit</span>
+                      <span>{listing.condition?.toUpperCase() || 'NEW'}</span>
                     </div>
                   </div>
                   
@@ -198,9 +224,9 @@ const SearchDiscover = () => {
                     <Link to={`/listing/${listing.id}`} className="card-btn secondary">
                       View Details
                     </Link>
-                    <button onClick={() => navigate(`/listing/${listing.id}`)} className="card-btn primary">
-                      Get Quotation
-                    </button>
+                    <Link to={`/messages?chat=${listing.id}`} className="card-btn primary">
+                      Get Quote
+                    </Link>
                   </div>
                 </div>
               </div>
