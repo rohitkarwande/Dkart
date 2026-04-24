@@ -22,7 +22,7 @@ const Header = () => {
         </div>
 
         <div className="actions-section">
-          <Link to="/coming-soon" className="action-link">
+          <Link to="/login" className="action-link">
             <span className="action-icon">👤</span>
             <span>Sign In</span>
           </Link>
