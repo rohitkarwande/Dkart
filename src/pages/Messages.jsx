@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/useAuthStore';
+import { Send, MessageSquare, Package } from 'lucide-react';
 import './Messages.css';
 
 const Messages = () => {
@@ -8,36 +9,55 @@ const Messages = () => {
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [otherParties, setOtherParties] = useState({}); // userId -> profile map
   const messagesEndRef = useRef(null);
   const { profile } = useAuthStore();
 
   const CURRENT_USER_ID = profile?.id;
 
-  // Fetch initial chat list
+  // Fetch chat list with profile info for both parties
   useEffect(() => {
     if (!CURRENT_USER_ID) return;
 
     const fetchChats = async () => {
-      // Fetch chats where the current user is either the buyer or the seller
       const { data, error } = await supabase
         .from('chats')
         .select(`
-          id, 
+          id,
           status,
-          equipment_listings (title),
+          listing_id,
           buyer_id,
-          seller_id
+          seller_id,
+          equipment_listings (id, title, price)
         `)
-        .or(`buyer_id.eq.${CURRENT_USER_ID},seller_id.eq.${CURRENT_USER_ID}`);
+        .or(`buyer_id.eq.${CURRENT_USER_ID},seller_id.eq.${CURRENT_USER_ID}`)
+        .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setChats(data);
+      if (error) { console.error(error); return; }
+
+      setChats(data || []);
+
+      // Collect all unique other-party IDs to fetch names
+      const otherIds = [...new Set(
+        (data || []).map(c => c.buyer_id === CURRENT_USER_ID ? c.seller_id : c.buyer_id)
+      )].filter(Boolean);
+
+      if (otherIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, company_name, is_verified')
+          .in('id', otherIds);
+
+        const profileMap = {};
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+        setOtherParties(profileMap);
       }
     };
+
     fetchChats();
   }, [CURRENT_USER_ID]);
 
-  // Fetch messages when a chat is selected
+  // Fetch messages + subscribe to real-time updates
   useEffect(() => {
     if (!activeChat) return;
 
@@ -56,22 +76,19 @@ const Messages = () => {
 
     fetchMessages();
 
-    // Set up real-time subscription for new messages in this chat
     const channel = supabase
       .channel(`chat_${activeChat.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${activeChat.id}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages(prev => [...prev, payload.new]);
           scrollToBottom();
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [activeChat]);
 
   const scrollToBottom = () => {
@@ -82,18 +99,16 @@ const Messages = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChat) return;
+    if (!newMessage.trim() || !activeChat || !CURRENT_USER_ID) return;
 
     const messageText = newMessage;
-    setNewMessage(''); // optimistic clear
+    setNewMessage('');
 
-    const { error } = await supabase.from('messages').insert([
-      {
-        chat_id: activeChat.id,
-        sender_id: CURRENT_USER_ID,
-        content: messageText,
-      },
-    ]);
+    const { error } = await supabase.from('messages').insert([{
+      chat_id: activeChat.id,
+      sender_id: CURRENT_USER_ID,
+      content: messageText,
+    }]);
 
     if (error) {
       console.error('Error sending message:', error);
@@ -101,37 +116,76 @@ const Messages = () => {
     }
   };
 
+  const handleUpdateStatus = async (newStatus) => {
+    if (!activeChat) return;
+    const { error } = await supabase
+      .from('chats')
+      .update({ status: newStatus })
+      .eq('id', activeChat.id);
+
+    if (!error) {
+      setActiveChat(prev => ({ ...prev, status: newStatus }));
+      setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, status: newStatus } : c));
+    }
+  };
+
+  const getOtherParty = (chat) => {
+    const otherId = chat.buyer_id === CURRENT_USER_ID ? chat.seller_id : chat.buyer_id;
+    return otherParties[otherId] || null;
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'open') return '#10b981';
+    if (status === 'negotiating') return '#f59e0b';
+    if (status === 'closed') return '#64748b';
+    return '#10b981';
+  };
+
   return (
     <div className="messages-container">
       <div className="chat-layout">
-        
+
         {/* Left Sidebar: Chat List */}
         <aside className="chat-sidebar">
           <div className="chat-sidebar-header">
             <h2>Messages & Deals</h2>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>
+              {chats.length} conversation{chats.length !== 1 ? 's' : ''}
+            </span>
           </div>
           <div className="chat-list">
             {chats.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No active conversations
+              <div style={{ padding: '3rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <MessageSquare size={40} style={{ marginBottom: '1rem', opacity: 0.4 }} />
+                <p style={{ fontWeight: '600' }}>No conversations yet</p>
+                <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Contact a seller to start negotiating</p>
               </div>
             ) : (
               chats.map((chat) => {
-                const otherPartyId = chat.buyer_id === CURRENT_USER_ID ? chat.seller_id : chat.buyer_id;
-                // In a real app, we would fetch the other party's name. For now, use placeholder.
-                const otherPartyName = "User " + (otherPartyId ? otherPartyId.substring(0, 5) : 'Unknown');
+                const other = getOtherParty(chat);
+                const displayName = other?.company_name || other?.full_name || 'Unknown User';
+                const role = chat.buyer_id === CURRENT_USER_ID ? 'Buying' : 'Selling';
 
                 return (
-                  <div 
-                    key={chat.id} 
+                  <div
+                    key={chat.id}
                     className={`chat-item ${activeChat?.id === chat.id ? 'active' : ''}`}
                     onClick={() => setActiveChat(chat)}
                   >
-                    <div className="chat-avatar">{otherPartyName[0]}</div>
+                    <div className="chat-avatar">{displayName[0]?.toUpperCase() || '?'}</div>
                     <div className="chat-preview">
-                      <div className="chat-name">{otherPartyName}</div>
-                      <div className="chat-listing-title">📦 {chat.equipment_listings?.title || 'Unknown Listing'}</div>
-                      <div className="chat-last-message">Status: {chat.status}</div>
+                      <div className="chat-name">{displayName}</div>
+                      <div className="chat-listing-title">
+                        <Package size={12} /> {chat.equipment_listings?.title || 'Unknown Listing'}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '20px', background: '#f1f5f9', color: 'var(--text-muted)', fontWeight: '600' }}>
+                          {role}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '700', color: getStatusColor(chat.status) }}>
+                          {chat.status?.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -145,19 +199,35 @@ const Messages = () => {
           <main className="chat-main">
             <header className="chat-header">
               <div className="chat-header-info">
-                <h3>Negotiation for {activeChat.equipment_listings?.title}</h3>
-                <p>Status: {activeChat.status}</p>
+                <h3>{activeChat.equipment_listings?.title || 'Negotiation'}</h3>
+                <p style={{ color: getStatusColor(activeChat.status), fontWeight: '700' }}>
+                  Status: {activeChat.status?.toUpperCase()}
+                </p>
               </div>
               <div className="chat-actions">
-                <button className="chat-btn secondary">Attach Quotation</button>
-                <button className="chat-btn primary">Make Offer</button>
+                {activeChat.status === 'open' && (
+                  <button className="chat-btn primary" onClick={() => handleUpdateStatus('negotiating')}>
+                    Start Negotiating
+                  </button>
+                )}
+                {activeChat.status === 'negotiating' && (
+                  <>
+                    <button className="chat-btn secondary" onClick={() => handleUpdateStatus('open')}>
+                      Reopen
+                    </button>
+                    <button className="chat-btn primary" onClick={() => handleUpdateStatus('closed')}>
+                      Mark as Closed
+                    </button>
+                  </>
+                )}
               </div>
             </header>
 
             <div className="messages-area">
               {messages.length === 0 ? (
                 <div style={{ textAlign: 'center', margin: 'auto', color: 'var(--text-muted)' }}>
-                  Start the negotiation by sending a message!
+                  <MessageSquare size={40} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                  <p style={{ fontWeight: '600' }}>Start the negotiation!</p>
                 </div>
               ) : (
                 messages.map((msg) => {
@@ -181,21 +251,21 @@ const Messages = () => {
             </div>
 
             <form className="chat-input-area" onSubmit={handleSendMessage}>
-              <input 
-                type="text" 
-                className="chat-input" 
-                placeholder="Type your message..." 
+              <input
+                type="text"
+                className="chat-input"
+                placeholder="Type your message or offer..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
               />
               <button type="submit" className="send-btn" disabled={!newMessage.trim()}>
-                ➤
+                <Send size={18} />
               </button>
             </form>
           </main>
         ) : (
           <div className="empty-chat-state">
-            <span>💬</span>
+            <MessageSquare size={48} style={{ opacity: 0.3 }} />
             <h3>Select a conversation</h3>
             <p>Choose a chat from the sidebar to view messages and negotiate deals.</p>
           </div>

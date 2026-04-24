@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '../components/VerifiedBadge';
 import ReviewSection from '../components/ReviewSection';
 import ContactUnlockModal from '../components/ContactUnlockModal';
 import { useAuthStore } from '../store/useAuthStore';
-import { MapPin, Calendar, Building, User, ShieldCheck, Box, MessageSquare, Briefcase, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, Building, User, ShieldCheck, Box, ChevronRight } from 'lucide-react';
 import './ListingDetails.css';
 
 const ListingDetails = () => {
@@ -15,6 +15,7 @@ const ListingDetails = () => {
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [existingChat, setExistingChat] = useState(null);
   const { profile } = useAuthStore();
 
   useEffect(() => {
@@ -35,118 +36,119 @@ const ListingDetails = () => {
       setListing(listingData);
 
       // 2. Fetch the seller's profile
-      const { data: sellerData, error: sellerError } = await supabase
+      const { data: sellerData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', listingData.seller_id)
         .single();
 
-      if (!sellerError && sellerData) {
-        setSeller(sellerData);
+      if (sellerData) setSeller(sellerData);
+
+      // 3. Check if buyer already has an open chat for this listing
+      if (profile?.id) {
+        const { data: chatData } = await supabase
+          .from('chats')
+          .select('id')
+          .eq('listing_id', listingData.id)
+          .eq('buyer_id', profile.id)
+          .maybeSingle();
+        
+        if (chatData) setExistingChat(chatData);
       }
 
       setLoading(false);
     };
 
-    if (id) {
-      fetchListing();
-    }
-  }, [id]);
+    if (id) fetchListing();
+  }, [id, profile?.id]);
 
   const handleContactSeller = () => {
+    if (!profile) {
+      navigate('/login');
+      return;
+    }
+    // If chat already exists, go straight to messages
+    if (existingChat) {
+      navigate('/messages');
+      return;
+    }
     setIsModalOpen(true);
   };
 
-  const handleUnlockSuccess = async (phone) => {
+  // Called after buyer confirms unlock in the modal
+  const handleUnlockSuccess = async () => {
     try {
-      // 1. Create Deal
-      const { data: dealData, error: dealError } = await supabase
-        .from('deals')
-        .insert([{
-          listing_id: listing.id,
-          buyer_id: profile?.id || null, // Real Buyer
-          seller_id: seller?.id || null, 
-          status: 'Open'
-        }])
-        .select()
-        .single();
-
-      if (dealError) throw dealError;
-
-      // 2. Create Chat Room
+      // Create a chat room for the negotiation (chats IS the deal tracking table)
       const { data: chatData, error: chatError } = await supabase
         .from('chats')
         .insert([{
           listing_id: listing.id,
-          buyer_id: profile?.id || null,
-          seller_id: seller?.id || null
+          buyer_id: profile.id,
+          seller_id: seller.id,
+          status: 'open'
         }])
         .select()
         .single();
-        
+
       if (chatError) throw chatError;
 
-      // We don't immediately redirect so the user can see the phone number in the modal
-      console.log("Deal and chat created. Phone: ", phone);
-      
+      // Send an opening message automatically
+      await supabase.from('messages').insert([{
+        chat_id: chatData.id,
+        sender_id: profile.id,
+        content: `Hi! I'm interested in your "${listing.title}". Can we discuss further?`
+      }]);
+
+      setExistingChat(chatData);
+      setIsModalOpen(false);
+      navigate('/messages');
     } catch (err) {
       console.error(err);
-      alert('Error creating deal/chat: ' + err.message);
+      alert('Error starting negotiation: ' + err.message);
     }
   };
 
   const handleRequestQuotation = async () => {
+    if (!profile) {
+      navigate('/login');
+      return;
+    }
     try {
-      // 1. Create Deal
-      const { data: dealData, error: dealError } = await supabase
-        .from('deals')
-        .insert([{
-          listing_id: listing.id,
-          buyer_id: profile?.id || null,
-          seller_id: seller?.id || null, 
-          status: 'Open'
-        }])
-        .select()
-        .single();
+      // Check for existing chat first
+      let chat = existingChat;
+      if (!chat) {
+        const { data: chatData, error: chatError } = await supabase
+          .from('chats')
+          .insert([{
+            listing_id: listing.id,
+            buyer_id: profile.id,
+            seller_id: seller.id,
+            status: 'open'
+          }])
+          .select()
+          .single();
 
-      if (dealError) throw dealError;
+        if (chatError) throw chatError;
+        chat = chatData;
+        setExistingChat(chat);
+      }
 
-      // 2. Create Chat Room
-      const { data: chatData, error: chatError } = await supabase
-        .from('chats')
-        .insert([{
-          listing_id: listing.id,
-          buyer_id: profile?.id || null,
-          seller_id: seller?.id || null
-        }])
-        .select()
-        .single();
-        
-      if (chatError) throw chatError;
-
-      // 3. Send Initial Quotation Request Message
+      // Send a formal quotation request
       await supabase.from('messages').insert([{
-        chat_id: chatData.id,
-        sender_id: profile?.id || null, // Real Buyer
-        content: `Hello! I am interested in your ${listing.title}. Could you please provide a formal quotation?`
+        chat_id: chat.id,
+        sender_id: profile.id,
+        content: `Hello! I am interested in your "${listing.title}". Could you please provide a formal quotation including bulk pricing if available?`
       }]);
 
-      alert('Quotation Request Sent!');
       navigate('/messages');
-      
     } catch (err) {
       console.error(err);
       alert('Error requesting quotation: ' + err.message);
     }
   };
 
-  if (loading) {
-    return <div style={{ textAlign: 'center', padding: '5rem' }}>Loading Listing...</div>;
-  }
-
-  if (!listing) {
-    return <div style={{ textAlign: 'center', padding: '5rem' }}>Listing not found!</div>;
-  }
+  if (loading) return <div style={{ textAlign: 'center', padding: '5rem' }}>Loading Listing...</div>;
+  if (!listing) return <div style={{ textAlign: 'center', padding: '5rem' }}>Listing not found!</div>;
 
   return (
     <div className="listing-details-container">
@@ -182,15 +184,10 @@ const ListingDetails = () => {
                 <MapPin size={18} />
                 <span>{listing.location}</span>
               </div>
-              
               <div className="listing-badges">
-                <span className="badge badge-condition">
-                  {listing.condition?.toUpperCase()}
-                </span>
+                <span className="badge badge-condition">{listing.condition?.toUpperCase()}</span>
                 {listing.categories?.name && (
-                  <span className="badge badge-category">
-                    {listing.categories.name}
-                  </span>
+                  <span className="badge badge-category">{listing.categories.name}</span>
                 )}
               </div>
             </div>
@@ -199,25 +196,16 @@ const ListingDetails = () => {
               <h2>Description</h2>
               <p>{listing.description || 'No description provided by the seller.'}</p>
             </div>
-            
+
             <div className="listing-section">
               <div className="section-title">
                 <Box size={20} />
                 <h2>Specifications & Details</h2>
               </div>
               <ul className="specs-list">
-                <li>
-                  <strong>Condition:</strong> 
-                  <span>{listing.condition}</span>
-                </li>
-                <li>
-                  <strong>Status:</strong> 
-                  <span>{listing.status}</span>
-                </li>
-                <li>
-                  <strong>Listed On:</strong> 
-                  <span>{new Date(listing.created_at).toLocaleDateString()}</span>
-                </li>
+                <li><strong>Condition:</strong> <span>{listing.condition}</span></li>
+                <li><strong>Status:</strong> <span>{listing.status}</span></li>
+                <li><strong>Listed On:</strong> <span>{new Date(listing.created_at).toLocaleDateString()}</span></li>
               </ul>
             </div>
           </div>
@@ -229,11 +217,17 @@ const ListingDetails = () => {
             <div className="price-display">
               {listing.price ? `₹${Number(listing.price).toLocaleString('en-IN')}` : 'Price on Request'}
             </div>
-            
+
             <div className="action-buttons">
-              <button className="btn-primary" onClick={handleContactSeller}>
-                Contact Seller / Unlock
-              </button>
+              {existingChat ? (
+                <button className="btn-primary" onClick={() => navigate('/messages')}>
+                  💬 Continue Negotiation
+                </button>
+              ) : (
+                <button className="btn-primary" onClick={handleContactSeller}>
+                  Contact Seller / Unlock
+                </button>
+              )}
               <button className="btn-secondary" onClick={handleRequestQuotation}>
                 Request Quotation
               </button>
@@ -244,37 +238,26 @@ const ListingDetails = () => {
             <div className="seller-card">
               <div className="seller-header">
                 <div className="seller-avatar">
-                  {seller.first_name ? seller.first_name[0] : seller.full_name ? seller.full_name[0] : 'S'}
+                  {seller.full_name ? seller.full_name[0] : 'S'}
                 </div>
                 <div className="seller-info">
                   <h3>{seller.company_name || 'Independent Seller'}</h3>
                   <VerifiedBadge isVerified={seller.is_verified} trustScore={seller.trust_score} />
                 </div>
               </div>
-              
               <div className="seller-details">
-                <p>
-                  <User size={16} />
-                  <span>{seller.full_name || 'Verified User'}</span>
-                </p>
-                <p>
-                  <Calendar size={16} />
-                  <span>Member since {new Date(seller.created_at).getFullYear()}</span>
-                </p>
-                <p>
-                  <Building size={16} />
-                  <span>Verified Business Entity</span>
-                </p>
+                <p><User size={16} /><span>{seller.full_name || 'Verified User'}</span></p>
+                <p><Calendar size={16} /><span>Member since {new Date(seller.created_at).getFullYear()}</span></p>
+                <p><Building size={16} /><span>Verified Business Entity</span></p>
               </div>
             </div>
           )}
-          
-          {/* Reviews Section */}
+
           {seller && <ReviewSection targetUserId={seller.id} />}
         </div>
       </div>
-      
-      <ContactUnlockModal 
+
+      <ContactUnlockModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         seller={seller}
