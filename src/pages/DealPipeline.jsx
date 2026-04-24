@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from '../store/useAuthStore';
 import './DealPipeline.css';
 
 const DealPipeline = () => {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001';
+  const { profile, user } = useAuthStore();
+  const currentUserId = profile?.id || user?.id;
 
   useEffect(() => {
     const fetchDeals = async () => {
+      if (!currentUserId) return;
       setLoading(true);
       const { data, error } = await supabase
         .from('deals')
@@ -20,7 +23,8 @@ const DealPipeline = () => {
           equipment_listings (title),
           buyer_id,
           seller_id
-        `);
+        `)
+        .or(`buyer_id.eq.${currentUserId},seller_id.eq.${currentUserId}`);
 
       if (!error && data) {
         setDeals(data);
@@ -29,7 +33,7 @@ const DealPipeline = () => {
     };
 
     fetchDeals();
-  }, []);
+  }, [currentUserId]);
 
   const handleDragStart = (e, dealId) => {
     e.dataTransfer.setData('dealId', dealId);
@@ -60,7 +64,12 @@ const DealPipeline = () => {
     }
   };
 
-  const COLUMNS = ['Open', 'Negotiation', 'Closed'];
+  const COLUMNS = [
+    { key: 'open', label: 'Open' },
+    { key: 'negotiating', label: 'Negotiating' },
+    { key: 'closed_won', label: 'Closed (Won)' },
+    { key: 'closed_lost', label: 'Closed (Lost)' }
+  ];
 
   return (
     <div className="pipeline-container">
@@ -74,16 +83,16 @@ const DealPipeline = () => {
       ) : (
         <div className="kanban-board">
           {COLUMNS.map((column) => {
-            const columnDeals = deals.filter((d) => (d.status || 'Open') === column);
+            const columnDeals = deals.filter((d) => (d.status || 'open') === column.key);
             return (
               <div 
-                key={column} 
+                key={column.key} 
                 className="kanban-column"
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, column)}
+                onDrop={(e) => handleDrop(e, column.key)}
               >
                 <div className="kanban-column-header">
-                  {column}
+                  {column.label}
                   <span className="count">{columnDeals.length}</span>
                 </div>
                 
@@ -95,12 +104,9 @@ const DealPipeline = () => {
                     onDragStart={(e) => handleDragStart(e, deal.id)}
                   >
                     <div className="deal-title">{deal.equipment_listings?.title || 'Unknown Equipment'}</div>
-                    <div className="deal-price">
-                      {deal.agreed_price ? `₹${Number(deal.agreed_price).toLocaleString('en-IN')}` : 'Price TBD'}
-                    </div>
                     <div className="deal-meta">
                       <span>ID: {deal.id.substring(0, 8)}</span>
-                      <span>{deal.buyer_id === CURRENT_USER_ID ? 'Buying' : 'Selling'}</span>
+                      <span>{deal.buyer_id === currentUserId ? 'Buying' : 'Selling'}</span>
                     </div>
                   </div>
                 ))}

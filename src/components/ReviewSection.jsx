@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from '../store/useAuthStore';
 
-const ReviewSection = ({ targetUserId }) => {
+const ReviewSection = ({ targetUserId, listingId }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
-
-  const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001';
+  const { profile, user } = useAuthStore();
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -18,7 +18,7 @@ const ReviewSection = ({ targetUserId }) => {
           rating,
           comment,
           created_at,
-          reviewer:reviewer_id(first_name, last_name, company_name)
+          reviewer:reviewer_id(full_name, company_name)
         `)
         .eq('target_seller_id', targetUserId)
         .order('created_at', { ascending: false });
@@ -38,17 +38,48 @@ const ReviewSection = ({ targetUserId }) => {
     e.preventDefault();
     if (!newReview.comment.trim()) return;
 
+    if (!profile && !user) {
+      alert('You must be logged in to submit a review.');
+      return;
+    }
+
+    const reviewerId = profile?.id || user?.id;
+
+    if (!reviewerId) {
+      alert('Your user ID is missing. Please try logging out and logging in again.');
+      return;
+    }
+
+    // Ensure the profile exists in the database to prevent foreign key violations
+    // (This handles legacy accounts or accounts created without the proper profile trigger)
+    if (!profile?.id && user?.id) {
+      const { error: profileUpsertError } = await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: user.id,
+            role: 'buyer',
+            full_name: user.email?.split('@')[0] || 'Buyer',
+            company_name: 'Independent Buyer'
+          }
+        ], { onConflict: 'id' });
+        
+      if (profileUpsertError) {
+        console.error("Profile auto-create error:", profileUpsertError);
+      }
+    }
+
     // In a real app, you would verify that the reviewer actually completed a deal with the targetUserId
     // For this prototype, we'll just insert it directly
     const { data, error } = await supabase
       .from('reviews')
       .insert([
         {
-          reviewer_id: CURRENT_USER_ID,
+          reviewer_id: reviewerId,
           target_seller_id: targetUserId,
+          listing_id: listingId || null,
           rating: parseInt(newReview.rating),
           comment: newReview.comment,
-          // deal_id would be set here
         }
       ])
       .select(`
@@ -56,10 +87,11 @@ const ReviewSection = ({ targetUserId }) => {
         rating,
         comment,
         created_at,
-        reviewer:reviewer_id(first_name, last_name, company_name)
+        reviewer:reviewer_id(full_name, company_name)
       `);
 
     if (error) {
+      console.error("Review submission error:", error);
       alert('Error submitting review');
     } else if (data) {
       setReviews(prev => [data[0], ...prev]);
@@ -121,7 +153,7 @@ const ReviewSection = ({ targetUserId }) => {
             <div key={review.id} style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <strong style={{ color: 'var(--text-main)' }}>
-                  {review.reviewer?.company_name || review.reviewer?.first_name || 'Anonymous User'}
+                  {review.reviewer?.company_name || review.reviewer?.full_name || 'Anonymous User'}
                 </strong>
                 <span style={{ color: '#d97706', fontWeight: 'bold' }}>
                   {'⭐'.repeat(review.rating)}

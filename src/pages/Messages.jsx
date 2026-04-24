@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthStore } from '../store/useAuthStore';
 import './Messages.css';
 
 const Messages = () => {
@@ -9,30 +11,59 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
 
-  // Dummy user ID defined in migration script (simulating current logged-in user)
-  const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001';
+  const { profile, user } = useAuthStore();
+  const location = useLocation();
+  const currentUserId = profile?.id || user?.id;
 
   // Fetch initial chat list
   useEffect(() => {
     const fetchChats = async () => {
-      // In a real app, we would fetch chats where buyer_id OR seller_id is CURRENT_USER_ID
-      // For this prototype, we'll just fetch all chats where we are involved
+      if (!currentUserId) return;
+
+      // In the new schema, chat_rooms are linked via inquiries
       const { data, error } = await supabase
         .from('chats')
         .select(`
           id, 
-          status,
-          equipment_listings (title),
-          buyer_id,
-          seller_id
-        `);
+          deals (
+            id,
+            status,
+            buyer_id,
+            seller_id,
+            equipment_listings (title)
+          )
+        `)
+        .or(`buyer_id.eq.${currentUserId},seller_id.eq.${currentUserId}`, { foreignTable: 'deals' });
 
-      if (!error && data) {
-        setChats(data);
+      if (error) {
+        console.error('Error fetching chats:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Fetched chats:', data);
+        // Flatten the structure for easier use in the component
+        const flattenedChats = data.map(room => ({
+          id: room.id,
+          status: room.deals?.status,
+          buyer_id: room.deals?.buyer_id,
+          seller_id: room.deals?.seller_id,
+          equipment_listings: room.deals?.equipment_listings
+        }));
+        
+        setChats(flattenedChats);
+        
+        // Handle direct navigation via chatId query param
+        const params = new URLSearchParams(location.search);
+        const targetChatId = params.get('chatId');
+        if (targetChatId) {
+          const target = flattenedChats.find(c => c.id === targetChatId);
+          if (target) setActiveChat(target);
+        }
       }
     };
     fetchChats();
-  }, []);
+  }, [currentUserId, location.search]);
 
   // Fetch messages when a chat is selected
   useEffect(() => {
@@ -42,7 +73,7 @@ const Messages = () => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('chat_id', activeChat.id)
+        .eq('room_id', activeChat.id)
         .order('created_at', { ascending: true });
 
       if (!error && data) {
@@ -58,7 +89,7 @@ const Messages = () => {
       .channel(`chat_${activeChat.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${activeChat.id}` },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${activeChat.id}` },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
           scrollToBottom();
@@ -86,8 +117,8 @@ const Messages = () => {
 
     const { error } = await supabase.from('messages').insert([
       {
-        chat_id: activeChat.id,
-        sender_id: null, // Set to null to bypass Foreign Key error for prototype
+        room_id: activeChat.id,
+        sender_id: currentUserId,
         content: messageText,
       },
     ]);
@@ -114,7 +145,7 @@ const Messages = () => {
               </div>
             ) : (
               chats.map((chat) => {
-                const otherPartyId = chat.buyer_id === CURRENT_USER_ID ? chat.seller_id : chat.buyer_id;
+                const otherPartyId = chat.buyer_id === currentUserId ? chat.seller_id : chat.buyer_id;
                 // In a real app, we would fetch the other party's name. For now, use placeholder.
                 const otherPartyName = "User " + (otherPartyId ? otherPartyId.substring(0, 5) : 'Unknown');
 
@@ -158,7 +189,7 @@ const Messages = () => {
                 </div>
               ) : (
                 messages.map((msg) => {
-                  const isSentByMe = msg.sender_id === CURRENT_USER_ID;
+                  const isSentByMe = msg.sender_id === currentUserId;
                   return (
                     <div key={msg.id} className={`message-bubble ${isSentByMe ? 'sent' : 'received'}`}>
                       <div className="message-content">{msg.content}</div>

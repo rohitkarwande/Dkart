@@ -10,6 +10,7 @@ import BuyCredits from '../pages/dashboard/BuyCredits';
 import VendorAnalytics from '../pages/dashboard/VendorAnalytics';
 import BulkUpload from '../pages/dashboard/BulkUpload';
 import MyListings from '../pages/dashboard/MyListings';
+import Settings from '../pages/dashboard/Settings';
 import AdminOverview from '../pages/dashboard/AdminOverview';
 import PostListing from '../pages/PostListing';
 import ListingDetails from '../pages/ListingDetails';
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="credits" element={<BuyCredits />} />
         <Route path="analytics" element={<VendorAnalytics />} />
         <Route path="bulk-upload" element={<BulkUpload />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="admin" element={<AdminOverview />} />
       </Route>
     </Routes>
