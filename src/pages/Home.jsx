@@ -1,6 +1,7 @@
 import Header from '../components/Header';
 import HeroBanner from '../components/HeroBanner';
 import CategoryGrid from '../components/CategoryGrid';
+import ExploreFeed from '../components/ExploreFeed';
 
 const Home = () => {
   return (
@@ -10,6 +11,7 @@ const Home = () => {
         <HeroBanner />
         <div className="main-content-wrapper">
           <CategoryGrid />
+          <ExploreFeed />
         </div>
       </main>
       
