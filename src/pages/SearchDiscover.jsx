@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { MapPin, Box, ShieldCheck, Star } from 'lucide-react';
 import './SearchDiscover.css';
 
 const SearchDiscover = () => {
@@ -8,6 +9,7 @@ const SearchDiscover = () => {
   const [listings, setListings] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -148,31 +150,58 @@ const SearchDiscover = () => {
         ) : (
           <div className="results-grid">
             {listings.map((listing) => (
-              <div key={listing.id} className="listing-card">
-                <div className="listing-img-container">
+              <div key={listing.id} className="premium-listing-card">
+                <div className="card-image-wrapper">
                   {listing.images && listing.images.length > 0 ? (
                     <img src={listing.images[0]} alt={listing.title} />
                   ) : (
-                    <span style={{ fontSize: '3rem' }}>📸</span>
+                    <div className="placeholder-image">
+                      <Box size={48} />
+                    </div>
                   )}
-                  <div className="listing-condition-badge">
-                    {listing.condition?.toUpperCase()}
+                  <div className="card-badge verified">
+                    <ShieldCheck size={14} />
+                    <span>Verified Supplier</span>
                   </div>
                 </div>
                 
-                <div className="listing-card-content">
-                  <h3>{listing.title}</h3>
-                  <div className="listing-card-price">
-                    {listing.price ? `₹${Number(listing.price).toLocaleString('en-IN')}` : 'Price on Request'}
-                  </div>
-                  <div className="listing-card-meta">
-                    <span>📍 {listing.location || 'Location Not Specified'}</span>
-                    <span>📁 {listing.categories?.name || 'Uncategorized'}</span>
+                <div className="card-details">
+                  <div className="card-top">
+                    <span className="category-tag">{listing.categories?.name || 'Medical'}</span>
+                    <div className="rating-mini">
+                      <Star size={12} fill="#f59e0b" color="#f59e0b" />
+                      <span>4.8</span>
+                    </div>
                   </div>
                   
-                  <Link to={`/listing/${listing.id}`} className="view-details-btn">
-                    View Details
-                  </Link>
+                  <h3>{listing.title}</h3>
+                  
+                  <div className="card-price-row">
+                    <span className="price-label">Asking Price</span>
+                    <div className="price-value">
+                      {listing.price ? `₹${Number(listing.price).toLocaleString('en-IN')}` : 'Contact for Price'}
+                    </div>
+                  </div>
+
+                  <div className="card-meta-info">
+                    <div className="meta-item">
+                      <MapPin size={14} />
+                      <span>{listing.location || 'All India'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <Box size={14} />
+                      <span>Min. Order: 1 Unit</span>
+                    </div>
+                  </div>
+                  
+                  <div className="card-actions">
+                    <Link to={`/listing/${listing.id}`} className="card-btn secondary">
+                      View Details
+                    </Link>
+                    <button onClick={() => navigate(`/listing/${listing.id}`)} className="card-btn primary">
+                      Get Quotation
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { MapPin, Box, ArrowRight, ShieldCheck, Star } from 'lucide-react';
 import './ExploreFeed.css';
@@ -8,6 +8,7 @@ import '../pages/SearchDiscover.css'; // Reusing card styles
 const ExploreFeed = () => {
   const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchExploreFeeds = async () => {
@@ -88,7 +89,7 @@ const ExploreFeed = () => {
                   <Link to={`/listing/${listing.id}`} className="card-btn secondary">
                     View Details
                   </Link>
-                  <button className="card-btn primary">
+                  <button onClick={() => navigate(`/listing/${listing.id}`)} className="card-btn primary">
                     Get Quotation
                   </button>
                 </div>
