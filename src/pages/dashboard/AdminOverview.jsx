@@ -101,84 +101,80 @@ const AdminOverview = () => {
   if (loading) return <div style={{ padding: '2rem' }}>Loading Admin Panel...</div>;
 
   return (
-    <div className="admin-container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div className="admin-header" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--primary-color)' }}>
-          <ShieldCheck size={28} />
-          Platform Administration
-        </h2>
-        <p style={{ color: 'var(--text-muted)' }}>Overview of marketplace activity and user management.</p>
+    <div className="admin-container">
+      <div className="admin-header">
+        <h2>Platform Intelligence</h2>
+        <p>Real-time analytics and management dashboard.</p>
       </div>
 
-      <div className="admin-tabs" style={{ display: 'flex', gap: '2rem', marginBottom: '2.5rem', borderBottom: '1px solid var(--border-soft)' }}>
+      <div className="admin-tabs">
         <button 
           onClick={() => setActiveTab('overview')} 
-          style={{ padding: '1rem 0', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '700', color: activeTab === 'overview' ? 'var(--primary-color)' : 'var(--text-muted)', borderBottom: activeTab === 'overview' ? '3px solid var(--primary-color)' : '3px solid transparent' }}
+          className={activeTab === 'overview' ? 'active' : ''}
         >
-          Overview
+          Insights
         </button>
         <button 
           onClick={() => setActiveTab('deals')} 
-          style={{ padding: '1rem 0', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '700', color: activeTab === 'deals' ? 'var(--primary-color)' : 'var(--text-muted)', borderBottom: activeTab === 'deals' ? '3px solid var(--primary-color)' : '3px solid transparent' }}
+          className={activeTab === 'deals' ? 'active' : ''}
         >
-          All Deals
+          Live Negotiations
         </button>
         <button 
           onClick={() => setActiveTab('analytics')} 
-          style={{ padding: '1rem 0', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '700', color: activeTab === 'analytics' ? 'var(--primary-color)' : 'var(--text-muted)', borderBottom: activeTab === 'analytics' ? '3px solid var(--primary-color)' : '3px solid transparent' }}
+          className={activeTab === 'analytics' ? 'active' : ''}
         >
-          Advanced Analysis
+          Growth Data
         </button>
       </div>
 
       {activeTab === 'overview' && (
         <>
           <div className="kpi-grid">
-            <div className="kpi-card" style={{ borderTop: '4px solid var(--primary-color)' }}>
-              <div className="kpi-icon green"><Users size={24} /></div>
+            <div className="kpi-card">
+              <div className="kpi-icon green"><Users size={28} /></div>
               <div className="kpi-data">
                 <h3>{stats.users}</h3>
-                <p>Total Users</p>
+                <p>Platform Users</p>
               </div>
             </div>
 
-            <div className="kpi-card" style={{ borderTop: '4px solid #10b981' }}>
-              <div className="kpi-icon green-light"><Package size={24} /></div>
+            <div className="kpi-card">
+              <div className="kpi-icon green-light"><Package size={28} /></div>
               <div className="kpi-data">
                 <h3>{stats.listings}</h3>
-                <p>Active Listings</p>
+                <p>Total Listings</p>
               </div>
             </div>
 
-            <div className="kpi-card" style={{ borderTop: '4px solid #064e3b' }}>
-              <div className="kpi-icon green-dark"><Briefcase size={24} /></div>
+            <div className="kpi-card">
+              <div className="kpi-icon green-dark"><Briefcase size={28} /></div>
               <div className="kpi-data">
                 <h3>{stats.deals}</h3>
-                <p>Platform Deals</p>
+                <p>Negotiations</p>
               </div>
             </div>
 
-            <div className="kpi-card" style={{ borderTop: '4px solid var(--primary-color)' }}>
-              <div className="kpi-icon green-rich"><TrendingUp size={24} /></div>
+            <div className="kpi-card">
+              <div className="kpi-icon green-rich"><Activity size={28} /></div>
               <div className="kpi-data">
                 <h3>₹{(stats.revenue / 100000).toFixed(1)}L</h3>
-                <p>Estimated GMV</p>
+                <p>GMV Volume</p>
               </div>
             </div>
           </div>
-
-          <div className="admin-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem', marginTop: '3rem' }}>
+          <div className="admin-grid-layout elite">
             {/* User Management */}
             <div className="admin-card">
-              <h3>Recent Registrations</h3>
+              <h3><Users size={20} /> User Pipeline</h3>
               <div className="table-responsive">
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>User / Company</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                      <th>Identity</th>
+                      <th>Account</th>
+                      <th>Verified</th>
+                      <th>Management</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -186,13 +182,13 @@ const AdminOverview = () => {
                       <tr key={u.id}>
                         <td>
                           <strong>{u.full_name || 'New User'}</strong>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{u.company_name || 'Individual'}</div>
+                          <div className="sub-text">{u.company_name || 'Individual'}</div>
                         </td>
-                        <td><span className={`role-badge ${u.role}`}>{u.role?.toUpperCase()}</span></td>
+                        <td><span className={`role-badge ${u.role}`}>{u.role}</span></td>
                         <td>{u.is_verified ? '✅' : '⏳'}</td>
                         <td>
                           {!u.is_verified && (
-                            <button onClick={() => handleApproveUser(u.id)} className="approve-small-btn">Verify</button>
+                            <button onClick={() => handleApproveUser(u.id)} className="approve-small-btn">Approve</button>
                           )}
                         </td>
                       </tr>
@@ -204,28 +200,26 @@ const AdminOverview = () => {
 
             {/* Trending Analysis */}
             <div className="admin-card">
-              <h3>Top Trending Equipment</h3>
-              <div style={{ height: '300px', width: '100%', marginTop: '1rem' }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <h3><TrendingUp size={20} /> Market Trends</h3>
+              <div className="chart-container-elite">
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={topProducts}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="title" hide />
-                    <YAxis />
-                    <Tooltip cursor={{fill: 'rgba(5, 150, 105, 0.1)'}} />
-                    <Bar dataKey="views_count" fill="var(--primary-color)" radius={[4, 4, 0, 0]} />
+                    <Tooltip cursor={{fill: 'rgba(5, 150, 105, 0.05)'}} />
+                    <Bar dataKey="views_count" fill="var(--primary-color)" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-              <div className="trending-list" style={{ marginTop: '1rem' }}>
+              <div className="trending-list-elite">
                 {topProducts.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border-soft)' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{p.title}</span>
-                    <span style={{ color: 'var(--primary-color)', fontWeight: '700' }}>{p.views_count} views</span>
+                  <div key={i} className="trending-row">
+                    <span>{p.title}</span>
+                    <span className="count">{p.views_count} views</span>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          </div></div>
         </>
       )}
 
