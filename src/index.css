@@ -1676,7 +1676,7 @@ body {
 /* Dashboard Layout Enhancements */
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px 1fr;
   min-height: 100vh;
   background: #ffffff;
 }
@@ -1716,15 +1716,17 @@ body {
 }
 
 .sidebar-brand h2 {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   margin: 0;
+  white-space: nowrap;
 }
 
 .sidebar-brand .subtitle {
   font-size: 0.7rem;
-  color: #64748b;
+  color: #94a3b8;
   margin: 0;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .user-context-card {
