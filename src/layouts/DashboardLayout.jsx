@@ -21,10 +21,20 @@ const DashboardLayout = () => {
     <div className="dashboard-layout">
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
-          <h2>MediMart Panel</h2>
-          <div className="badge-container">
-            <span className="role-badge">{profile?.role || 'User'}</span>
-            {isPro && <span className="pro-badge">PRO</span>}
+          <div className="logo-icon">D</div>
+          <div>
+            <h2>Dkart Admin</h2>
+            <p className="subtitle">B2B Marketplace Control</p>
+          </div>
+        </div>
+        
+        <div className="user-context-card">
+          <div className="user-avatar-small">
+            {profile?.full_name ? profile.full_name[0] : 'U'}
+          </div>
+          <div className="user-info-sidebar">
+            <span className="user-name">{profile?.full_name || 'Admin User'}</span>
+            <span className="user-role-badge">{profile?.role}</span>
           </div>
         </div>
 
