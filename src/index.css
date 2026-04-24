@@ -5,12 +5,12 @@
   --primary-dark: #064e3b;
   --accent-color: #f59e0b; /* Professional Gold/Amber for badges */
   
-  --bg-light: #f8fafc;
+  --bg-light: #ffffff; /* Clean White */
   --bg-white: #ffffff;
   --card-bg: #ffffff;
   
-  --text-main: #0f172a;
-  --text-body: #334155;
+  --text-main: #064e3b; /* Deepest Green for contrast */
+  --text-body: #1e293b;
   --text-muted: #64748b;
   
   --border-color: #e2e8f0;
@@ -1639,9 +1639,9 @@ body {
   font-weight: 700;
 }
 
-.role-badge.buyer { background: #eff6ff; color: #3b82f6; }
+.role-badge.buyer { background: #ecfdf5; color: #10b981; }
 .role-badge.seller { background: #ecfdf5; color: #10b981; }
-.role-badge.admin { background: #fef2f2; color: #ef4444; }
+.role-badge.admin { background: #064e3b; color: white; }
 
 .status-badge {
   padding: 4px 10px;
@@ -1650,9 +1650,9 @@ body {
   font-weight: 700;
 }
 
-.status-badge.open { background: #dcfce7; color: #16a34a; }
-.status-badge.closed { background: #f3f4f6; color: #4b5563; }
-.status-badge.pending { background: #fef9c3; color: #a16207; }
+.status-badge.open { background: #ecfdf5; color: #059669; }
+.status-badge.closed { background: #f8fafc; color: #64748b; }
+.status-badge.pending { background: #fffbeb; color: #f59e0b; }
 
 .approve-small-btn {
   padding: 6px 12px;
@@ -1678,16 +1678,16 @@ body {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: 100vh;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .dashboard-sidebar {
-  background: #0f172a; /* Slate 900 for premium dark feel */
+  background: #064e3b; /* Deep Emerald Green instead of slate */
   color: white;
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -1811,7 +1811,7 @@ body {
 }
 
 .dashboard-content {
-  padding: 3rem;
+  padding: 2rem 3rem;
 }
 
 /* Premium Profile Styles */
@@ -1822,14 +1822,14 @@ body {
 
 .profile-header-banner {
   background: white;
-  padding: 3rem;
+  padding: 2.5rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-soft);
   display: flex;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 3rem;
-  box-shadow: var(--shadow-md);
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px -5px rgba(5, 150, 105, 0.1);
   position: relative;
   overflow: hidden;
 }
@@ -1837,8 +1837,8 @@ body {
 .profile-header-banner::before {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; height: 6px;
-  background: linear-gradient(90deg, var(--primary-color), #10b981);
+  top: 0; left: 0; right: 0; height: 4px;
+  background: var(--primary-color);
 }
 
 .profile-avatar-large {
@@ -1944,20 +1944,20 @@ body {
   text-transform: uppercase;
 }
 
-.role-tag.admin { background: #fef2f2; color: #ef4444; }
+.role-tag.admin { background: #ecfdf5; color: #059669; }
 .role-tag.seller { background: #ecfdf5; color: #10b981; }
 
 .trust-progress {
   width: 150px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .trust-progress .progress-bar-inner {
-  height: 8px;
+  height: 100%;
   background: var(--primary-color);
-  border-radius: 10px;
 }
 
 .stats-row {

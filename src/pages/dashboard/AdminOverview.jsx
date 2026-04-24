@@ -135,7 +135,7 @@ const AdminOverview = () => {
         <>
           <div className="kpi-grid">
             <div className="kpi-card" style={{ borderTop: '4px solid var(--primary-color)' }}>
-              <div className="kpi-icon blue"><Users size={24} /></div>
+              <div className="kpi-icon green"><Users size={24} /></div>
               <div className="kpi-data">
                 <h3>{stats.users}</h3>
                 <p>Total Users</p>
@@ -143,23 +143,23 @@ const AdminOverview = () => {
             </div>
 
             <div className="kpi-card" style={{ borderTop: '4px solid #10b981' }}>
-              <div className="kpi-icon green"><Package size={24} /></div>
+              <div className="kpi-icon green-light"><Package size={24} /></div>
               <div className="kpi-data">
                 <h3>{stats.listings}</h3>
                 <p>Active Listings</p>
               </div>
             </div>
 
-            <div className="kpi-card" style={{ borderTop: '4px solid #f59e0b' }}>
-              <div className="kpi-icon orange"><Briefcase size={24} /></div>
+            <div className="kpi-card" style={{ borderTop: '4px solid #064e3b' }}>
+              <div className="kpi-icon green-dark"><Briefcase size={24} /></div>
               <div className="kpi-data">
                 <h3>{stats.deals}</h3>
                 <p>Platform Deals</p>
               </div>
             </div>
 
-            <div className="kpi-card" style={{ borderTop: '4px solid #8b5cf6' }}>
-              <div className="kpi-icon purple"><TrendingUp size={24} /></div>
+            <div className="kpi-card" style={{ borderTop: '4px solid var(--primary-color)' }}>
+              <div className="kpi-icon green-rich"><TrendingUp size={24} /></div>
               <div className="kpi-data">
                 <h3>₹{(stats.revenue / 100000).toFixed(1)}L</h3>
                 <p>Estimated GMV</p>
