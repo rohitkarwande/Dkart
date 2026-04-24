@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 import { MapPin, Box, ArrowRight, ShieldCheck, Star } from 'lucide-react';
 import './ExploreFeed.css';
 import '../pages/SearchDiscover.css'; // Reusing card styles

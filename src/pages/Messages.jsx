@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/useAuthStore';
 import './Messages.css';
 
 const Messages = () => {
@@ -8,15 +9,16 @@ const Messages = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
+  const { profile } = useAuthStore();
 
-  // Dummy user ID defined in migration script (simulating current logged-in user)
-  const CURRENT_USER_ID = '00000000-0000-0000-0000-000000000001';
+  const CURRENT_USER_ID = profile?.id;
 
   // Fetch initial chat list
   useEffect(() => {
+    if (!CURRENT_USER_ID) return;
+
     const fetchChats = async () => {
-      // In a real app, we would fetch chats where buyer_id OR seller_id is CURRENT_USER_ID
-      // For this prototype, we'll just fetch all chats where we are involved
+      // Fetch chats where the current user is either the buyer or the seller
       const { data, error } = await supabase
         .from('chats')
         .select(`
@@ -25,14 +27,15 @@ const Messages = () => {
           equipment_listings (title),
           buyer_id,
           seller_id
-        `);
+        `)
+        .or(`buyer_id.eq.${CURRENT_USER_ID},seller_id.eq.${CURRENT_USER_ID}`);
 
       if (!error && data) {
         setChats(data);
       }
     };
     fetchChats();
-  }, []);
+  }, [CURRENT_USER_ID]);
 
   // Fetch messages when a chat is selected
   useEffect(() => {
@@ -87,7 +90,7 @@ const Messages = () => {
     const { error } = await supabase.from('messages').insert([
       {
         chat_id: activeChat.id,
-        sender_id: null, // Set to null to bypass Foreign Key error for prototype
+        sender_id: CURRENT_USER_ID,
         content: messageText,
       },
     ]);

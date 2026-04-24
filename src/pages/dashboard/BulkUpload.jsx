@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { UploadCloud, FileSpreadsheet, CheckCircle, ShoppingBag } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
+import Papa from 'papaparse';
 
 const BulkUpload = () => {
   const [file, setFile] = useState(null);
@@ -37,33 +39,47 @@ const BulkUpload = () => {
     setIsUploading(true);
     setProgress(0);
 
-    // Actual Insert for Hackathon Demo
-    const sampleProducts = [
-      { seller_id: profile.id, title: "GE Revolution CT Scanner", condition: "new", price: 12000000, location: "Mumbai", status: "active", description: "High-end CT scanner with AI features." },
-      { seller_id: profile.id, title: "Siemens Magnetom MRI", condition: "refurbished", price: 8500000, location: "Delhi", status: "active", description: "Reliable 1.5T MRI machine." },
-      { seller_id: profile.id, title: "Philips Affiniti 70 Ultrasound", condition: "used", price: 1500000, location: "Bangalore", status: "active", description: "Versatile ultrasound for clinical use." }
-    ];
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const { data } = results;
+        
+        // Fetch categories to map names to IDs
+        const { data: categories } = await supabase.from('categories').select('id, name');
+        const catMap = categories?.reduce((acc, cat) => {
+          acc[cat.name.toLowerCase()] = cat.id;
+          return acc;
+        }, {}) || {};
 
-    try {
-      const { error } = await supabase.from('equipment_listings').insert(sampleProducts);
-      if (error) throw error;
-      
-      // Simulate progress bar for UX
-      const interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsUploading(false);
-            setIsSuccess(true);
-            return 100;
-          }
-          return prev + 25;
-        });
-      }, 300);
-    } catch (err) {
-      alert("Error importing: " + err.message);
-      setIsUploading(false);
-    }
+        const listingsToInsert = data.map(row => ({
+          seller_id: profile.id,
+          title: row.title,
+          description: row.description || '',
+          price: row.price ? parseFloat(row.price) : null,
+          condition: row.condition?.toLowerCase() || 'new',
+          location: row.location || 'India',
+          category_id: catMap[row.category?.toLowerCase()] || null,
+          status: 'active',
+          images: row.images ? [row.images] : []
+        }));
+
+        try {
+          const { error } = await supabase.from('equipment_listings').insert(listingsToInsert);
+          if (error) throw error;
+          
+          setIsUploading(false);
+          setIsSuccess(true);
+        } catch (err) {
+          alert("Error importing: " + err.message);
+          setIsUploading(false);
+        }
+      },
+      error: (err) => {
+        alert("Error parsing CSV: " + err.message);
+        setIsUploading(false);
+      }
+    });
   };
 
   if (isSuccess) {

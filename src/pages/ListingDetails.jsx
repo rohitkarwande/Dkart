@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 import VerifiedBadge from '../components/VerifiedBadge';
 import ReviewSection from '../components/ReviewSection';
 import ContactUnlockModal from '../components/ContactUnlockModal';

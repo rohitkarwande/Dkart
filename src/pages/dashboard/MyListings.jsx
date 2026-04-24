@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Package, Eye, Edit, Trash2, Plus } from 'lucide-react';
@@ -119,9 +119,9 @@ const MyListings = () => {
                 <Link to={`/listing/${listing.id}`} className="icon-btn" style={{ padding: '0.5rem', color: '#3b82f6', background: '#eff6ff', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="View Public Listing">
                   <Eye size={18} />
                 </Link>
-                <button className="icon-btn" style={{ padding: '0.5rem', color: '#10b981', background: '#ecfdf5', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="Edit Listing">
+                <Link to={`/post-listing?id=${listing.id}`} className="icon-btn" style={{ padding: '0.5rem', color: '#10b981', background: '#ecfdf5', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Edit Listing">
                   <Edit size={18} />
-                </button>
+                </Link>
                 <button onClick={() => handleDelete(listing.id)} className="icon-btn" style={{ padding: '0.5rem', color: '#ef4444', background: '#fef2f2', border: 'none', borderRadius: '4px', cursor: 'pointer' }} title="Delete">
                   <Trash2 size={18} />
                 </button>
