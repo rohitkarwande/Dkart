@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom';
+import { ShoppingBag, FileText, MessageCircle, BadgeCheck, LayoutDashboard, Globe, Settings, ShieldCheck } from 'lucide-react';
 
 const categories = [
-  { id: 1, title: 'Equipment Listings', icon: '🩻', desc: 'Browse all medical devices', path: '/coming-soon' },
-  { id: 2, title: 'Inquiry System', icon: '📝', desc: 'Send bulk requirements', path: '/coming-soon' },
-  { id: 3, title: 'Chat & Negotiate', icon: '💬', desc: 'Connect with sellers', path: '/coming-soon' },
-  { id: 4, title: 'Verified Deals', icon: '🏷️', desc: 'Special B2B pricing', path: '/coming-soon' },
-  { id: 5, title: 'User Dashboard', icon: '📊', desc: 'Manage your profile', path: '/coming-soon' },
-  { id: 6, title: 'Global Search', icon: '🔍', desc: 'Find what you need', path: '/coming-soon' },
-  { id: 7, title: 'Admin Panel', icon: '⚙️', desc: 'Platform management', path: '/coming-soon' },
-  { id: 8, title: 'Auth & Security', icon: '🔒', desc: 'Login / Register', path: '/coming-soon' },
+  { id: 1, title: 'Equipment', icon: <ShoppingBag size={32} />, desc: 'Browse medical devices', path: '/search' },
+  { id: 2, title: 'Inquiry', icon: <FileText size={32} />, desc: 'Send bulk requirements', path: '/search' },
+  { id: 3, title: 'Messages', icon: <MessageCircle size={32} />, desc: 'Connect with sellers', path: '/messages' },
+  { id: 4, title: 'Verified Deals', icon: <BadgeCheck size={32} />, desc: 'Special B2B pricing', path: '/deals' },
+  { id: 5, title: 'Dashboard', icon: <LayoutDashboard size={32} />, desc: 'Manage your profile', path: '/dashboard' },
+  { id: 6, title: 'Global Search', icon: <Globe size={32} />, desc: 'Find what you need', path: '/search' },
+  { id: 7, title: 'Settings', icon: <Settings size={32} />, desc: 'Platform settings', path: '/dashboard' },
+  { id: 8, title: 'Security', icon: <ShieldCheck size={32} />, desc: 'Login / Register', path: '/login' },
 ];
 
 const CategoryGrid = () => {
@@ -22,7 +23,9 @@ const CategoryGrid = () => {
       <div className="category-grid">
         {categories.map((category) => (
           <Link key={category.id} to={category.path} className="category-card">
-            <div className="category-icon">{category.icon}</div>
+            <div className="category-icon-wrapper">
+              {category.icon}
+            </div>
             <div className="category-info">
               <h3>{category.title}</h3>
               <p>{category.desc}</p>

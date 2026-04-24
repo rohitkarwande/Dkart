@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import VerifiedBadge from '../components/VerifiedBadge';
 import ReviewSection from '../components/ReviewSection';
+import ContactUnlockModal from '../components/ContactUnlockModal';
+import { useAuthStore } from '../store/useAuthStore';
+import { MapPin, Calendar, Building, User, ShieldCheck, Box, MessageSquare, Briefcase, ChevronRight } from 'lucide-react';
 import './ListingDetails.css';
 
 const ListingDetails = () => {
@@ -11,6 +14,8 @@ const ListingDetails = () => {
   const [listing, setListing] = useState(null);
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { profile } = useAuthStore();
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -48,18 +53,18 @@ const ListingDetails = () => {
     }
   }, [id]);
 
-  const handleContactSeller = async () => {
-    // Simulated Credit Deduction
-    const confirmed = window.confirm('This will consume 1 credit to unlock contact and start a negotiation. Proceed?');
-    if (!confirmed) return;
+  const handleContactSeller = () => {
+    setIsModalOpen(true);
+  };
 
+  const handleUnlockSuccess = async (phone) => {
     try {
       // 1. Create Deal
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .insert([{
           listing_id: listing.id,
-          buyer_id: null, // Simulated Buyer
+          buyer_id: profile?.id || null, // Real Buyer
           seller_id: seller?.id || null, 
           status: 'Open'
         }])
@@ -73,7 +78,7 @@ const ListingDetails = () => {
         .from('chats')
         .insert([{
           listing_id: listing.id,
-          buyer_id: null,
+          buyer_id: profile?.id || null,
           seller_id: seller?.id || null
         }])
         .select()
@@ -81,12 +86,12 @@ const ListingDetails = () => {
         
       if (chatError) throw chatError;
 
-      alert('Contact Unlocked Successfully!');
-      navigate('/messages');
+      // We don't immediately redirect so the user can see the phone number in the modal
+      console.log("Deal and chat created. Phone: ", phone);
       
     } catch (err) {
       console.error(err);
-      alert('Error unlocking contact: ' + err.message);
+      alert('Error creating deal/chat: ' + err.message);
     }
   };
 
@@ -97,7 +102,7 @@ const ListingDetails = () => {
         .from('deals')
         .insert([{
           listing_id: listing.id,
-          buyer_id: null,
+          buyer_id: profile?.id || null,
           seller_id: seller?.id || null, 
           status: 'Open'
         }])
@@ -111,7 +116,7 @@ const ListingDetails = () => {
         .from('chats')
         .insert([{
           listing_id: listing.id,
-          buyer_id: null,
+          buyer_id: profile?.id || null,
           seller_id: seller?.id || null
         }])
         .select()
@@ -122,7 +127,7 @@ const ListingDetails = () => {
       // 3. Send Initial Quotation Request Message
       await supabase.from('messages').insert([{
         chat_id: chatData.id,
-        sender_id: null, // Simulated Buyer
+        sender_id: profile?.id || null, // Real Buyer
         content: `Hello! I am interested in your ${listing.title}. Could you please provide a formal quotation?`
       }]);
 
@@ -149,20 +154,34 @@ const ListingDetails = () => {
         {/* Left Column: Main Listing Content */}
         <div className="listing-main">
           <div className="image-gallery">
-            {listing.images && listing.images.length > 0 ? (
-              <img src={listing.images[0]} alt={listing.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-            ) : (
-              <div className="image-placeholder">
-                <span style={{ fontSize: '4rem' }}>📸</span>
-                <p>No Images Available</p>
-              </div>
-            )}
+            <div className="gallery-main">
+              {listing.images && listing.images.length > 0 ? (
+                <img src={listing.images[0]} alt={listing.title} />
+              ) : (
+                <div className="image-placeholder">
+                  <Box size={64} />
+                  <p>No Images Available</p>
+                </div>
+              )}
+            </div>
+            <div className="gallery-badge">
+              <ShieldCheck size={16} />
+              Verified Listing
+            </div>
           </div>
 
           <div className="listing-content">
             <div className="listing-header">
+              <nav className="breadcrumb">
+                <Link to="/">Home</Link> <ChevronRight size={14} />
+                <Link to="/search">Equipment</Link> <ChevronRight size={14} />
+                <span>{listing.categories?.name || 'Category'}</span>
+              </nav>
               <h1>{listing.title}</h1>
-              <p style={{ color: 'var(--text-muted)' }}>📍 {listing.location}</p>
+              <div className="listing-location">
+                <MapPin size={18} />
+                <span>{listing.location}</span>
+              </div>
               
               <div className="listing-badges">
                 <span className="badge badge-condition">
@@ -182,11 +201,23 @@ const ListingDetails = () => {
             </div>
             
             <div className="listing-section">
-              <h2>Specifications & Details</h2>
-              <ul style={{ paddingLeft: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-                <li><strong>Condition:</strong> {listing.condition}</li>
-                <li><strong>Status:</strong> {listing.status}</li>
-                <li><strong>Listed On:</strong> {new Date(listing.created_at).toLocaleDateString()}</li>
+              <div className="section-title">
+                <Box size={20} />
+                <h2>Specifications & Details</h2>
+              </div>
+              <ul className="specs-list">
+                <li>
+                  <strong>Condition:</strong> 
+                  <span>{listing.condition}</span>
+                </li>
+                <li>
+                  <strong>Status:</strong> 
+                  <span>{listing.status}</span>
+                </li>
+                <li>
+                  <strong>Listed On:</strong> 
+                  <span>{new Date(listing.created_at).toLocaleDateString()}</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -222,8 +253,18 @@ const ListingDetails = () => {
               </div>
               
               <div className="seller-details">
-                <p>👤 {seller.full_name || seller.first_name + ' ' + seller.last_name || 'Verified User'}</p>
-                <p>📅 Member since {new Date(seller.created_at).getFullYear()}</p>
+                <p>
+                  <User size={16} />
+                  <span>{seller.full_name || 'Verified User'}</span>
+                </p>
+                <p>
+                  <Calendar size={16} />
+                  <span>Member since {new Date(seller.created_at).getFullYear()}</span>
+                </p>
+                <p>
+                  <Building size={16} />
+                  <span>Verified Business Entity</span>
+                </p>
               </div>
             </div>
           )}
@@ -232,6 +273,12 @@ const ListingDetails = () => {
           {seller && <ReviewSection targetUserId={seller.id} />}
         </div>
       </div>
+      <ContactUnlockModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        seller={seller}
+        onUnlockSuccess={handleUnlockSuccess}
+      />
     </div>
   );
 };
